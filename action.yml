@@ -38,6 +38,7 @@ runs:
   using: "composite"
   steps:
       - name: Generate CMake
+        shell: bash
         run: >
           cmake -GNinja 
             -C "${MONOREPO_ROOT}/libcxx/cmake/caches/${{ inputs.config }}.cmake"
@@ -55,13 +56,18 @@ runs:
             ${{ inputs.cmake_flags }} 
             -S runtimes/ -B build
       - name: build
+        shell: bash
         run: cmake --build build
       - name: test-deps
-        run: cmake --build build --target cxx-test-depends
+        shell: bash
+        run: ninja -vC build/ cxx-test-depends
       - name: test-libcxx
+        shell: bash
         run: ninja -vC build/ check-cxx
       - name: test-cxxabi
+        shell: bash
         run: ninja -vC build/ check-cxxabi
       - name: test-libunwind
+        shell: bash
         run: ninja -vC build/ check-unwind
 

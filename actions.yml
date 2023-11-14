@@ -1,0 +1,34 @@
+name: 'Build and Test libc++'
+description: 'Test libc++'
+inputs:
+  config:  # id of input
+    description: 'The configuration to build'
+    required: true
+  cc:
+    description: 'The C compiler'
+    required: true
+  cxx:
+    description: 'The C++ compiler'
+    required: true
+outputs:
+  artifacts-name:
+    description: "The name of the artifacts for this step"
+    value: ${{ inputs.config }}-${{ inputs.cxx }}-results
+runs:
+  using: "composite"
+  steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+      - name: ${{ inputs.config }}
+        run: libcxx/utils/ci/run-buildbot ${{ inputs.config }}
+        env:
+          CC: ${{ inputs.cc }}
+          CXX: ${{ inputs.cxx }}
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{ inputs.config }}-${{ inputs.cxx }}-results
+          path: |
+            "**/test-results.xml"
+            "**/*.abilist"

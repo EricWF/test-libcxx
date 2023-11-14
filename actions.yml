@@ -2,14 +2,38 @@ name: 'Build and Test libc++'
 description: 'Test libc++'
 inputs:
   config:  # id of input
-    description: 'The configuration to build'
+    description: 'The configuration to build. (The name of the config cache without the .cmake extension)'
     required: true
+  cmake_flags:
+    description: 'Flags to pass to CMake'
+    required: false
+    type: string
   cc:
     description: 'The C compiler'
     required: true
   cxx:
     description: 'The C++ compiler'
     required: true
+  runtimes:
+    description: 'The runtimes to test'
+    required: false
+    default: "libcxx;libcxxabi;libunwind"
+  install_dir:
+    description: 'The installation directory'
+    required: false
+    default: ./install
+  cxx_abi:
+    description: 'The C++ ABI library to use'
+    required: false
+    default: libcxxabi
+  ninja:
+    description: "The ninja binary"
+    required: false
+    default: "ninja"
+  enable_clang_tidy:
+    description: "Whether to enable clang-tidy"
+    required: false
+    default: "OFF"
 outputs:
   artifacts-name:
     description: "The name of the artifacts for this step"
@@ -20,11 +44,33 @@ runs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
-      - name: ${{ inputs.config }}
-        run: libcxx/utils/ci/run-buildbot ${{ inputs.config }}
-        env:
-          CC: ${{ inputs.cc }}
-          CXX: ${{ inputs.cxx }}
+      - name: Generate CMake
+        run: >
+          cmake -GNinja 
+            -C "${MONOREPO_ROOT}/libcxx/cmake/caches/${{ inputs.config }}.cmake"
+            -DCMAKE_MAKE_PROGRAM="${{ inputs.ninja }}"
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+            -DCMAKE_INSTALL_PREFIX="${{ inputs.install_dir }}"
+            -DLIBCXX_ENABLE_WERROR=YES
+            -DLIBCXXABI_ENABLE_WERROR=YES
+            -DLIBUNWIND_ENABLE_WERROR=YES
+            "-DLIBCXX_ENABLE_CLANG_TIDY=${{ inputs.enable_clang_tidy }}"
+            -DLLVM_ENABLE_RUNTIMES="${{ inputs.runtimes }}"
+            -DCMAKE_C_COMPILER=${{ inputs.cc }} 
+            -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} 
+            -DLIBCXX_CXX_ABI=${{ inputs.cxx_abi }}
+            ${{ inputs.cmake_flags }} 
+            -S runtimes/ -B build
+      - name: build
+        run: cmake --build build
+      - name: test-deps
+        run: cmake --build build --target cxx-test-depends
+      - name: test-libcxx
+        run: ninja -vC build/ check-cxx
+      - name: test-cxxabi
+        run: ninja -vC build/ check-cxxabi
+      - name: test-libunwind
+        run: ninja -vC build/ check-unwind
       - uses: actions/upload-artifact@v3
         if: always()
         with:

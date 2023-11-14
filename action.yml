@@ -7,7 +7,7 @@ inputs:
   cmake_flags:
     description: 'Flags to pass to CMake'
     required: false
-    type: string
+    default: ""
   cc:
     description: 'The C compiler'
     required: true
@@ -41,6 +41,7 @@ runs:
         shell: bash
         run: >
           cmake -GNinja 
+            -S runtimes/ -B build
             -C "${MONOREPO_ROOT}/libcxx/cmake/caches/${{ inputs.config }}.cmake"
             -DCMAKE_MAKE_PROGRAM="${{ inputs.ninja }}"
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -54,7 +55,7 @@ runs:
             -DCMAKE_CXX_COMPILER=${{ inputs.cxx }} 
             -DLIBCXX_CXX_ABI=${{ inputs.cxx_abi }}
             ${{ inputs.cmake_flags }} 
-            -S runtimes/ -B build
+
       - name: build
         shell: bash
         run: cmake --build build

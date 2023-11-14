@@ -29,21 +29,14 @@ inputs:
   ninja:
     description: "The ninja binary"
     required: false
-    default: "ninja"
+    default: "/opt/bin/ninja"
   enable_clang_tidy:
     description: "Whether to enable clang-tidy"
     required: false
     default: "OFF"
-outputs:
-  artifacts-name:
-    description: "The name of the artifacts for this step"
-    value: ${{ inputs.config }}-${{ inputs.cxx }}-results
 runs:
   using: "composite"
   steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 5
       - name: Generate CMake
         run: >
           cmake -GNinja 
@@ -71,10 +64,4 @@ runs:
         run: ninja -vC build/ check-cxxabi
       - name: test-libunwind
         run: ninja -vC build/ check-unwind
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: ${{ inputs.config }}-${{ inputs.cxx }}-results
-          path: |
-            "**/test-results.xml"
-            "**/*.abilist"
+
